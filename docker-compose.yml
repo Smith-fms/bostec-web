@@ -1,0 +1,67 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bostecweb
+    container_name: bostecweb-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - bostecweb
+
+  db:
+    image: mariadb:10.6
+    container_name: bostecweb-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mariadb
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - bostecweb
+
+  nginx:
+    image: nginx:1.21-alpine
+    container_name: bostecweb-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www/html
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - bostecweb
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: bostecweb-phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USERNAME}
+      PMA_PASSWORD: ${DB_PASSWORD}
+    restart: unless-stopped
+    ports:
+      - 8080:80
+    networks:
+      - bostecweb
+
+networks:
+  bostecweb:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local
